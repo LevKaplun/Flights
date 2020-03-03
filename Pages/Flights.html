@@ -1,0 +1,433 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+            integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+            crossorigin="anonymous"></script>
+
+
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="../Scripts/ajaxCalls.js"></script>
+    <link href="../StyleSheet1.css" rel="stylesheet" />
+    <script>
+
+
+
+        $(document).ready(function () {
+            $("#Search").click(getFligthFromServer)
+
+
+
+            $("#MyFlights").click(getFligth)
+
+            $(document).on("click", "#btnStop", getFlightByStopFromDB);
+
+            //url = "https://api.skypicker.com/locations?type=dump&locale=en-US&location_types=airport&limit=4000&active_only=true&sort=name";
+            //$.get(url).done(successAiraportsCB);
+            //$.get(url).fail(errorAiraportsCB);
+            ajaxCall("GET", "../api/Flight/Order", "", getOrdersSuccessCB, getErrorCB);
+            ajaxCall("GET", "../api/Discount", "", getDiscountSuccessCB, getErrorCB);
+
+            ajaxCall("GET", "../api/Airports", "", getAPSuccessCB, getAPErrorCB);
+        });
+        function getDiscountSuccessCB(data) {
+            discounts = data;
+            console.log(data);
+        }
+        function getOrdersSuccessCB(data) {
+            orderedFlights = data;
+            console.log(data);
+        }
+
+        function getAPSuccessCB(data) {
+            console.log(data);
+            var CN = [];
+            for (k in data) {
+                CN.push(data[k].Airport_Id.substring(0, 3));
+            }
+            console.log(CN);
+            autocomplete(document.getElementById("from"), CN);
+
+            autocomplete(document.getElementById("to"), CN);
+
+        }
+        function getAPErrorCB(data) {
+            console.log(data);
+        }
+
+        function successAiraportsCB(data) {
+            let airports = {
+                Aports: []
+            }
+            for (var i = 0; i < data.locations.length; i++) {
+                let airport = {
+                    Airport_Id: data.locations[i].id,
+                    Name: data.locations[i].name,
+                    Lat: data.locations[i].location.lat,
+                    Lon: data.locations[i].location.lon,
+                }
+                airports.Aports.push(airport);
+
+            }
+            console.log(airports)
+
+            //ajaxCall("POST", "../api/Airports", JSON.stringify(airports), PostASuccessCB, PostAErrorCB);
+
+        }
+
+        function PostASuccessCB(data) {
+            console.log("OK");
+        }
+
+        function PostAErrorCB(err) {
+            console.log(err);
+        }
+        function errorAiraportsCB(err) {
+            console.log(err);
+        }
+
+        function getFligth() {
+
+            ajaxCall("GET", "../api/Flight", "", getSuccessCB, getErrorCB);
+        }
+        function getSuccessCB(data) {
+            $("#ph").empty();
+            var temp = "<br>Stop: <input id='stoptxt' type='text' name='stop' />  <input id='btnStop' type='button' value='Search' />";
+            temp += "<br/><br/><p>My Flights:</p><br/> ";
+            for (var i = 0; i < data.length; i++) {
+                temp += "<div id='myFlight'>";
+                temp += data[i].RouteCnames[0];
+                for (var j = 1; j < data[i].RouteCnames.length; j++) {
+                    temp += " => " + data[i].RouteCnames[j];
+                }
+                temp += "<br/>Departure Date : " + data[i].From + "<br/>";
+                temp += "Arrivel Date: " + data[i].To + "<br/>";
+                temp += "EUR: " + data[i].Price + "<br/>";
+                temp += "</div></br>"
+
+            }
+            $("#phMF").html(temp);
+
+        }
+        function getErrorCB(data) {
+            console.log(data);
+        }
+
+
+        function Order(f) {
+            let dF = new Date();
+            let dT = new Date();
+            let strP = "";
+            strP += f.cityFrom;
+            for (var i = 0; i < f.route.length; i++) {
+                strP += "->" + f.route[i].cityTo;
+            }
+            dF.setTime(f.dTime * 1000);
+            dT.setTime(f.aTime * 1000);
+            let routeCnames = [];
+            routeCnames[0] = f.route[0].cityFrom
+            for (var i = 0; i < f.route.length; i++) {
+                routeCnames.push(f.route[i].cityTo);
+            }
+            console.log(routeCnames);
+            var Flight = {
+                FId: f.id,
+                Path: strP,
+                From: dF,
+                To: dT,
+                Price: Math.ceil(((100 - getDiscountP(f)) / 100) * f.conversion.EUR),
+                routeCnames: routeCnames
+            }
+            localStorage.Oflight = JSON.stringify(Flight);
+            localStorage.ordF = f.id;
+            window.location.href = "Order.html";
+        }
+        function getFligthFromServer() {
+            let from = $("#from").val();
+            let to = $("#to").val();
+            let dateS = $("#dateS").val();
+            let dateE = $("#dateE").val();
+            let today = new Date().toISOString().slice(0, 10)
+
+            if (from == "") {
+                alert("הזן מוצא")
+            } else if (to == "") {
+                alert("הזן יעד")
+            } else if (dateS == null) {
+                alert("לא הוזן תאריך התחלה")
+            } else if (dateE == null) {
+                alert("לא הוזן תאריך סיום")
+            } else if (dateS > dateE) {
+                alert("התאריכים שהזנת לא תקינים")
+            } else if (dateS < today) {
+                alert("תאריך ההתחלה שהזנת לא תקין")
+            } else {
+                $("phMF").empty();
+                let arrDataS = $("#dateS").val().split("-");
+                let arrDataE = $("#dateE").val().split("-");
+                let dataS = arrDataS[2] + "/" + arrDataS[1] + "/" + arrDataS[0];
+                let dataE = arrDataE[2] + "/" + arrDataE[1] + "/" + arrDataE[0];
+                d1 = new Date(arrDataS[0], arrDataS[1] - 1, arrDataS[2]);
+                d2 = new Date(arrDataS[0], arrDataE[1] - 1, arrDataE[2]);
+                urlString = "https://api.skypicker.com/flights?flyFrom=" + $("#from").val().toUpperCase() + "&to=" + $("#to").val().toUpperCase() + "&dateFrom=" + dataS + "&dateTo=" + dataE + "&partner=OR";
+                console.log(urlString);
+                ajaxCall("GET", urlString, "", getFlightSuccessCB, getFligthErrorCB);
+            }
+
+
+
+        }
+
+        function getFlightSuccessCB(data) {
+            console.log(data);
+            $("#ph").empty();
+            $("phMF").empty();
+            let temp = "";
+            let d = new Date();
+            for (var i = 0; i < data.data.length; i++) {
+                temp += "<div'>";
+                temp += data.data[i].cityFrom
+                for (var j = 0; j < data.data[i].route.length; j++) {
+                    temp += "->" + data.data[i].route[j].cityTo;
+                }
+
+                d.setTime(data.data[i].dTime * 1000);
+                temp += "<br/>Departure Date : " + d + "<br/>";
+                d.setTime(data.data[i].aTime * 1000);
+                temp += "Arrivel Date: " + d + "<br/>";
+                var newP = ((100 - getDiscountP(data.data[i])) / 100) * data.data[i].conversion.EUR; 
+                if (getDiscountP(data.data[i]) == 0) {
+                    temp += "EUR: " + data.data[i].conversion.EUR + "<br/>";
+                }
+                else {
+                    temp += "EUR: " + Math.ceil(newP) + "  <span style='width:40px;height:25px;background-color:red'>-" + getDiscountP(data.data[i]) + "%</span><br/>";
+                }
+                temp += "<input class='addFlight' onclick='PostData(" + JSON.stringify(data.data[i]) + ")' type='button' value='Add To Favorites' id='" + i + "' /><br/>";
+                temp += "<input class='addFlight' onclick='Order(" + JSON.stringify(data.data[i]) + ")' type='button' value='Order' id='" + i + "' /><br/>";
+
+                temp += "</div></br>"
+
+            }
+            $("#ph").append(temp);
+        }
+
+        function getDiscountP(f) {
+            for (var i = 0; i < discounts.length; i++) {
+
+                if (f.dTime * 1000 > Date.parse(new Date(discounts[i].FromDate)) && f.dTime * 1000 < Date.parse(new Date(discounts[i].ToDate)) && f.route.length == 1 && f.route[0].cityFrom.toLowerCase() == discounts[i].From.toLowerCase() && f.route[0].cityTo.toLowerCase() == discounts[i].To.toLowerCase()) {
+                    for (var j = 0; j < orderedFlights.length; j++) {
+                        if (f.id == orderedFlights[j].FId) {
+                            return discounts[i].PDiscount*0.5;
+                        }
+                    }
+                    //var newP = ((100 - discounts[i].PDiscount*0.6) / 100) * f.conversion.EUR;
+                    return Math.ceil(discounts[i].PDiscount*0.6);
+                }
+
+            }
+            return 0;
+        }
+
+        function getFligthErrorCB(err) {
+            console.log(err);
+        }
+
+        function PostData(f) {
+            console.log(f);
+            let dF = new Date();
+            let dT = new Date();
+            let strP = "";
+            strP += f.cityFrom;
+            for (var i = 0; i < f.route.length; i++) {
+                strP += "->" + f.route[i].cityTo;
+            }
+            dF.setTime(f.dTime * 1000);
+            dT.setTime(f.aTime * 1000);
+            let routeCnames = [];
+            routeCnames[0] = f.route[0].cityFrom
+            for (var i = 0; i < f.route.length; i++) {
+                routeCnames.push(f.route[i].cityTo);
+            }
+            console.log(routeCnames);
+            var Flight = {
+                FId: f.id,
+                Path: strP,
+                From: dF,
+                To: dT,
+                Price: Math.ceil(((100 - getDiscountP(f)) / 100) * f.conversion.EUR),
+                routeCnames: routeCnames
+            }
+
+            if (localStorage.Fav == undefined) {
+                fav = [];
+            }
+            else {
+                fav = JSON.parse(localStorage.Fav);
+            }
+            fav.push(Flight);
+            console.log(fav);
+            localStorage.Fav = JSON.stringify(fav)
+            ajaxCall("POST", "../api/Flight/f", JSON.stringify(Flight), PostSuccessCB, PostErrorCB);
+
+        }
+
+        function PostSuccessCB(data) {
+            console.log("OK");
+        }
+
+        function PostErrorCB(err) {
+            console.log(err);
+        }
+
+        function getFlightByStopFromDB() {
+            $("#ph").empty();
+            $("phMF").empty();
+            let stop = $('#stoptxt').val();
+            let url = "../api/Flight/" + stop;
+            ajaxCall("GET", url, "", getSuccessCB, getMyFlightByStopErrorCB)
+
+        }
+
+        function getMyFlightByStopSuccessCB(data) {
+            console.log(data);
+        }
+        function getMyFlightByStopErrorCB(err) {
+            alert(err);
+        }
+
+        function autocomplete(inp, arr) {
+            /*the autocomplete function takes two arguments,
+            the text field element and an array of possible autocompleted values:*/
+            var currentFocus;
+            /*execute a function when someone writes in the text field:*/
+            inp.addEventListener("input", function (e) {
+                var a, b, i, val = this.value;
+                /*close any already open lists of autocompleted values*/
+                closeAllLists();
+                if (!val) { return false; }
+                currentFocus = -1;
+                /*create a DIV element that will contain the items (values):*/
+                a = document.createElement("DIV");
+                a.setAttribute("id", this.id + "autocomplete-list");
+                a.setAttribute("class", "autocomplete-items");
+                /*append the DIV element as a child of the autocomplete container:*/
+                this.parentNode.appendChild(a);
+                /*for each item in the array...*/
+                for (i = 0; i < arr.length; i++) {
+                    /*check if the item starts with the same letters as the text field value:*/
+                    if (arr[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
+                        /*create a DIV element for each matching element:*/
+                        b = document.createElement("DIV");
+                        /*make the matching letters bold:*/
+                        b.innerHTML = "<strong>" + arr[i].substr(0, val.length) + "</strong>";
+                        b.innerHTML += arr[i].substr(val.length);
+                        /*insert a input field that will hold the current array item's value:*/
+                        b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+                        /*execute a function when someone clicks on the item value (DIV element):*/
+                        b.addEventListener("click", function (e) {
+                            /*insert the value for the autocomplete text field:*/
+                            inp.value = this.getElementsByTagName("input")[0].value;
+                            /*close the list of autocompleted values,
+                            (or any other open lists of autocompleted values:*/
+                            closeAllLists();
+                        });
+                        a.appendChild(b);
+                    }
+                }
+            });
+            /*execute a function presses a key on the keyboard:*/
+            inp.addEventListener("keydown", function (e) {
+                var x = document.getElementById(this.id + "autocomplete-list");
+                if (x) x = x.getElementsByTagName("div");
+                if (e.keyCode == 40) {
+                    /*If the arrow DOWN key is pressed,
+                    increase the currentFocus variable:*/
+                    currentFocus++;
+                    /*and and make the current item more visible:*/
+                    addActive(x);
+                } else if (e.keyCode == 38) { //up
+                    /*If the arrow UP key is pressed,
+                    decrease the currentFocus variable:*/
+                    currentFocus--;
+                    /*and and make the current item more visible:*/
+                    addActive(x);
+                } else if (e.keyCode == 13) {
+                    /*If the ENTER key is pressed, prevent the form from being submitted,*/
+                    e.preventDefault();
+                    if (currentFocus > -1) {
+                        /*and simulate a click on the "active" item:*/
+                        if (x) x[currentFocus].click();
+                    }
+                }
+            });
+            function addActive(x) {
+                /*a function to classify an item as "active":*/
+                if (!x) return false;
+                /*start by removing the "active" class on all items:*/
+                removeActive(x);
+                if (currentFocus >= x.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = (x.length - 1);
+                /*add class "autocomplete-active":*/
+                x[currentFocus].classList.add("autocomplete-active");
+            }
+            function removeActive(x) {
+                /*a function to remove the "active" class from all autocomplete items:*/
+                for (var i = 0; i < x.length; i++) {
+                    x[i].classList.remove("autocomplete-active");
+                }
+            }
+            function closeAllLists(elmnt) {
+                /*close all autocomplete lists in the document,
+                except the one passed as an argument:*/
+                var x = document.getElementsByClassName("autocomplete-items");
+                for (var i = 0; i < x.length; i++) {
+                    if (elmnt != x[i] && elmnt != inp) {
+                        x[i].parentNode.removeChild(x[i]);
+                    }
+                }
+            }
+            /*execute a function when someone clicks in the document:*/
+            document.addEventListener("click", function (e) {
+                closeAllLists(e.target);
+            });
+        }
+
+
+    </script>
+</head>
+<body>
+    <a href="Home.html">
+        <input type="button" class="btn-primary" name="Back" value=" Back " style="float:left" />
+    </a>
+    <div id="container">
+        <h1>Flight Information</h1>
+
+        <form autocomplete="off" action="/action_page.php">
+            <div class="autocomplete" style="width:300px;">
+                <input id="from" class="airport" type="text" name="myCountry" placeholder="Airport" title="three letter airport code" pattern="[A-Za-z]{3}" required>
+            </div>
+        </form>
+        <form autocomplete="off" action="/action_page.php">
+            <div class="autocomplete" style="width:300px;">
+                <input id="to" type="text" class="airport" name="myCountry" placeholder="Airport" title="three letter airport code" pattern="[A-Za-z]{3}" required>
+            </div>
+        </form>
+        <p> Start: </p>
+        <input type="date" id="dateS" /><br />
+
+        <p> End: </p>
+        <input type="date" id="dateE" /><br />
+        <br />
+        <input type="button" value="Search" id="Search" class="button" />
+        <!--<input type="button" value="MyFlights" id="MyFlights" class="button" />--><br />
+
+    </div>
+
+    <div id="ph"></div>
+
+    <div id="phMF"></div>
+</body>
+</html>

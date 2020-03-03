@@ -1,0 +1,161 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+    <link href="../StyleSheet1.css" rel="stylesheet" />
+    <link href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/css/bootstrap.css" rel="stylesheet" id="bootstrap-css">
+    <link href="//cdn.datatables.net/1.10.20/css/dataTables.bootstrap4.min.css" rel="stylesheet" id="bootstrap-css">
+    <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
+    <script src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.20/js/dataTables.bootstrap4.min.js"></script>
+    <script src="../Scripts/ajaxCalls.js"></script>
+
+
+    <script>
+        $(document).on("blur", ".inputDisc", function () {
+            console.log(this.value);
+            console.log(this.id);
+            if (Discounts[this.id - 1].PDiscount != this.value) {
+                Discounts[this.id - 1].PDiscount = this.value;
+                ajaxCall("PUT", "../api/Discount", JSON.stringify(Discounts[this.id - 1]), PutDiscountSuccessCB, getErrorCB);
+            }
+        });
+
+        function PutDiscountSuccessCB(data) {
+            swal("Discount Updated");
+        }
+        $(document).on("click", "#btnAdd", function () { $('#addRow').show(); $('#footer').hide(); });
+
+        $(document).ready(function () {
+            $("#aForm").submit(f1);
+            $('#addRow').hide();
+            $('#example').DataTable();
+            ajaxCall("GET", "../api/Discount", "", getDiscountSuccessCB, getErrorCB);
+
+
+        });
+        function f1() {
+            if (isvalid) {
+                var d = {
+                    From: $('#from').val(),
+                    To: $('#to').val(),
+                    FromDate: new Date($('#fromdate').val()),
+                    ToDate: new Date($('#todate').val()),
+                    PDiscount: $('#discount').val()
+                }
+                ajaxCall("POST", "../api/Discount", JSON.stringify(d), PostDiscountSuccessCB, getErrorCB);
+                return false;
+
+            } else
+                return true;
+        }
+        function Isvalid(b) {
+            isvalid = b;
+        }
+
+        function PostDiscountSuccessCB(data) {
+            $('#from').val("");
+            $('#to').val("");
+            $('#fromdate').val("");
+            $('#todate').val("");
+            $('#discount').val("");
+            swal("Post Discount Success");
+            setTimeout(function () { window.history.back(); }, 3000);
+        }
+
+        function getDiscountSuccessCB(data) {
+            Discounts = data;
+            var adminDis = [];
+            for (var i = 0; i < data.length; i++) {
+                var d1 = new Date(data[i].FromDate);
+                var d2 = new Date(data[i].ToDate);
+                var d = {
+                    Id: data[i].Id,
+                    From: data[i].From,
+                    To: data[i].To,
+                    FromDate: ((d1.getDate() > 9) ? d1.getDate() : ('0' + d1.getDate())) + '/' + (d1.getMonth() > 8 ? (d1.getMonth() + 1) : ('0' + (d1.getMonth() + 1))) + '/' + d1.getFullYear(),
+                    ToDate: ((d2.getDate() > 9) ? d2.getDate() : ('0' + d2.getDate())) + '/' + (d2.getMonth() > 8 ? (d2.getMonth() + 1) : ('0' + (d2.getMonth() + 1))) + '/' + d2.getFullYear(),
+                    PDiscount: data[i].PDiscount
+                }
+                adminDis.push(d);
+            }
+            console.log(data);
+            try {
+                tbl = $('#tblDiscount').DataTable({
+                    data: adminDis,
+                    pageLength: 5,
+                    columns: [
+                        { data: "From" },
+                        { data: "To" },
+
+                        { data: "FromDate" },
+                        { data: "ToDate" },
+                        {
+                            data: "PDiscount",
+                            render: function (data, type, row, meta) {
+                                return '<input type="text"class="inputDisc" id="' + row.Id + '" value="' + data + '" />';
+                            }
+                        }
+                    ],
+                });
+            }
+            catch (err) {
+                alert(err);
+            }
+        }
+        function getErrorCB(data) {
+            alert(data);
+        }
+        function UpdateDisc() {
+            console.log(tbl);
+        }
+    </script>
+
+</head>
+<body>
+    <div id="container">
+        <div id="header">
+            <div id="addRow" class="wrapper fadeInDown">
+                <div id="formContent">
+                    <form id="aForm">
+                        <input type="text" id="from" class="fadeIn first" placeholder="City From">
+                        <input type="text" id="to" class="fadeIn second" placeholder="City To">
+                        From Date :<input type="date" id="fromdate" class="fadeIn third" placeholder="From Date">
+                        To Date : <input type="date" id="todate" class="fadeIn third" placeholder="To Date">
+                        <input type="text" id="discount" class="fadeIn third" placeholder="Discount(%)">
+                        <input type="submit" onclick="Isvalid(true)" class="fadeIn fourth" value="Add">
+                        <button type="submit" onclick="Isvalid(false)" class="btn btn-danger" data-dismiss="modal"><i class="glyphicon glyphicon-remove"></i> Cancle</button>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div id="footer">
+            <br /><br />
+            <a href="Admin.html">
+                <input type="button" class="btn-primary" name="Back" value="Back" style="float:left" />
+            </a>
+
+            <br /><br />
+            <table id="tblDiscount" class="table table-striped table-bordered" style="width:100%;color:black">
+                <thead>
+                    <tr>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Date From</th>
+                        <th>Date To</th>
+                        <th>Discount (%)</th>
+                    </tr>
+                </thead>
+            </table>
+            <input type="button" id="btnAdd" class="btn-success" value="Add Row">
+        </div>
+    </div>
+</body>
+</html>

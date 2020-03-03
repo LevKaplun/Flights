@@ -1,0 +1,66 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+            integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+            crossorigin="anonymous"></script>
+
+
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="../Scripts/ajaxCalls.js"></script>
+    <link href="../StyleSheet1.css" rel="stylesheet" />
+
+    <script>
+        $(document).ready(function () {
+            if (localStorage.Fav == undefined) {
+                swal("Favorites Empty");
+            }
+            else
+                LoadF();
+        });
+        function LoadF() {
+            $("#ph").empty();
+            let temp = "";
+            let d = new Date();
+            fav = JSON.parse(localStorage.Fav);
+            temp += "<br/><br/><p>My Favotires:</p><br/> ";
+            for (var i = 0; i < fav.length; i++) {
+                temp += "<div id='myFlight'>";
+                temp += fav[i].routeCnames[0];
+                for (var j = 1; j < fav[i].routeCnames.length; j++) {
+                    temp += " => " + fav[i].routeCnames[j];
+                }
+                temp += "<br/>Departure Date : " + fav[i].From + "<br/>";
+                temp += "Arrivel Date: " + fav[i].To + "<br/>";
+                temp += "EUR: " + fav[i].Price + "<br/>";
+                temp += "<input class='addFlight' onclick='Order(" + JSON.stringify(fav[i]) + ")' type='button' value='Order' id='" + i + "' /><br/>"
+                temp += "</div></br>"
+
+            }
+            $("#ph").html(temp);
+        }
+
+        function Order(f) {
+            localStorage.Oflight = JSON.stringify(f);
+            localStorage.ordF = f.FId;
+            window.location.href = "Order.html";
+        }
+    </script>
+
+</head>
+<body>
+    <div id="container">
+        <br /><br />
+        <a href="Home.html">
+            <input type="button" class="btn-primary" name="Back" value="Back Home" style="float:left" />
+        </a>
+        <br /><br />
+        <div id="ph">
+        </div>
+    </div>
+
+</body>
+</html>

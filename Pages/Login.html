@@ -1,0 +1,60 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+
+    <meta charset="utf-8" />
+    <title></title>
+    <link href="../Login.css" rel="stylesheet" />
+    <script src="../Scripts/ajaxCalls.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            ajaxCall("GET", "../api/Admin", "", getAdminSuccessCB, ErrorCB);
+            $("#aForm").submit(f1);
+        });
+        function f1() {
+            for (var i = 0; i < admins.length; i++) {
+                if ($("#login").val().toLowerCase() == admins[i].Email.toLowerCase() && $("#password").val().toLowerCase() == admins[i].Password.toLowerCase()) {
+                    window.location.href = "Admin.html";
+                }
+                else
+                    swal("Wrong Email or Password");
+
+            }
+            console.log("f1");
+            return false;
+        }
+        function getAdminSuccessCB(data) {
+            admins = data;
+        }
+        function ErrorCB(data) {
+            console.log(data);
+        }
+    </script>
+</head>
+<body>
+    <div class="wrapper fadeInDown">
+        <div id="formContent">
+            <!-- Tabs Titles -->
+            <!-- Icon -->
+            <div class="fadeIn first">
+                <img src="https://cdn0.iconfinder.com/data/icons/travel-flat-icons/130/plain-512.png" id="icon" alt="User Icon" />
+            </div>
+            <!-- Login Form -->
+            <form id="aForm">
+                <input type="text" id="login" class="fadeIn second" name="login" placeholder="Email">
+                <input type="text" id="password" class="fadeIn third" name="login" placeholder="Password">
+                <input type="submit" class="fadeIn fourth" value="Log In">
+            </form>
+            <!-- Remind Passowrd -->
+            <div id="formFooter">
+                <a class="underlineHover" onclick="swal('Email: ' + admins[0].Email,'Password: ' + admins[0].Password )">Forgot Password?</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

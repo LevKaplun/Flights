@@ -1,0 +1,103 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+
+    <meta charset="utf-8" />
+    <title></title>
+    <link href="../Login.css" rel="stylesheet" />
+    <script src="../Scripts/ajaxCalls.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $("#aForm").submit(f1);
+            $("#pas").change(function () {
+                console.log(parseInt($("#pas").val()));
+                var str = "";
+                for (var i = 1; i <= parseInt($("#pas").val()); i++) {
+                    str += "<input type='text' id='i" + i + "' class='fadeIn third' name='login' placeholder='Name " + (i + 1) + "'>"
+                }
+                console.log(str);
+
+                $("#ph").html(str);
+            });
+        });
+        function f1() {
+            if (isvalid) {
+                var orderList = [];
+                if (document.getElementById('agree').checked) {
+                    for (var i = 1; i <= parseInt($("#pas").val()); i++) {
+                        var o = {
+                            Email: $("#Email").val(),
+                            Name: $("#i" + i).val(),
+                            FId: localStorage.ordF,
+                        }
+                        orderList.push(o);
+                    }
+                    console.log(orderList);
+                    ajaxCall("POST", "../api/Order", JSON.stringify(orderList), postOSuccessCB, ErrorCB);
+                    //window.history.back();
+                } else
+                {
+                    swal('Please indicate that you have read and agree to the Terms and Conditions and Privacy Policy');
+                    return false;
+                }
+
+            }
+            else {
+                window.history.back();
+
+            }
+            return false;
+        }
+        function Isvalid(b) {
+            isvalid = b;
+        }
+        function postOSuccessCB(data) {
+            swal("Order was placed");
+            ajaxCall("POST", "../api/Flight/o", localStorage.Oflight, postOFSuccessCB, OFErrorCB);
+        }
+        function ErrorCB(data) {
+            console.log("Error");
+        }
+        function postOFSuccessCB(data) {
+            setTimeout(function () { window.history.back(); }, 3000);
+        }
+        function OFErrorCB(data) {
+            console.log("Error");
+        }
+    </script>
+</head>
+<body>
+    <div class="wrapper fadeInDown">
+        <div id="formContent">
+
+            <div class="fadeIn first">
+                <img src="https://cdn.iconscout.com/icon/premium/png-256-thumb/confirm-order-1786645-1522009.png" id="icon" alt="User Icon" />
+            </div>
+            <form id="aForm">
+                <select class="input_panel" id="pas" required>
+                    <option value="">Number of passangers</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                </select>
+
+                <input type="text" id="Email" class="fadeIn second" name="login" placeholder="Email">
+                <div id="ph"></div>
+                I agree to the terms of service <input type="checkbox" name="checkbox" value="check" id="agree" />
+                <input type="submit" onclick="Isvalid(true)" class="fadeIn fourth" value="Order">
+                <button type="submit" onclick="Isvalid(false)" class="btn btn-danger" data-dismiss="modal"><i class="glyphicon glyphicon-remove"></i> Cancle</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
